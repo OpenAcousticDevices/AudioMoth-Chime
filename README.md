@@ -2,6 +2,8 @@
 
 A library which provides support for setting the time and deployment ID of an AudioMoth using an acoustic tone.
 
+Compatible with standard AudioMoth firmware 1.5.0 and later.
+
 ## Usage ##
 
 ### Android ###
