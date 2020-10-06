@@ -6,27 +6,21 @@
 
 'use strict';
 
-/* global AudioMothChime */
-/* jslint bitwise: true */
+/*global AudioMothChime */
+/*jslint bitwise: true */
 
 var AudioMothChimeConnector = function () {
 
-    var obj, audioMothChime, LENGTH_OF_DEPLOYMENT_ID;
-
-    LENGTH_OF_DEPLOYMENT_ID = 8;
+    var obj, audioMothChime, LENGTH_OF_DEPLOYMENT_ID = 8;
 
     /* Function to encode little-endian value */
 
-    function littleEndianBytes (byteCount, value) {
+    function littleEndianBytes(byteCount, value) {
 
-        var i, buffer;
-
-        buffer = [];
+        var i, buffer = [];
 
         for (i = 0; i < byteCount; i += 1) {
-
             buffer.push((value >> (i * 8)) & 255);
-
         }
 
         return buffer;
@@ -35,7 +29,7 @@ var AudioMothChimeConnector = function () {
 
     /* Function to generate time data */
 
-    function setTimeData (date) {
+    function setTimeData(date) {
 
         var bytes, unixTime, timezoneMinutes;
 
@@ -57,27 +51,25 @@ var AudioMothChimeConnector = function () {
 
     obj = { };
 
+    obj.playTone = function (duration, callback) {
+
+        audioMothChime.tone(duration, ["C5:1"], callback);
+
+    };
+
     obj.playTime = function (date, callback) {
 
         var bytes = setTimeData(date);
 
-        audioMothChime.chime(bytes, ['C5:1', 'D5:1', 'E5:1', 'C5:3'], callback);
+        audioMothChime.chime(bytes, ["C5:1", "D5:1", "E5:1", "C5:3"], callback);
 
     };
 
     obj.playTimeAndDeploymentID = function (date, deploymentID, callback) {
 
-        var i, bytes;
+        var i, bytes = setTimeData(date);
 
-        bytes = setTimeData(date);
-
-        if (!deploymentID || deploymentID.length !== LENGTH_OF_DEPLOYMENT_ID) {
-
-            console.log('AUDIOMOTHCHIME_CONNECTOR: Deployment ID is incorrect length');
-
-            return;
-
-        }
+        if (!deploymentID || deploymentID.length !== LENGTH_OF_DEPLOYMENT_ID) { return; }
 
         for (i = 0; i < LENGTH_OF_DEPLOYMENT_ID; i += 1) {
 
@@ -85,7 +77,7 @@ var AudioMothChimeConnector = function () {
 
         }
 
-        audioMothChime.chime(bytes, ['Eb5:1', 'G5:1', 'D5:1', 'F#5:1', 'Db5:1', 'F5:1', 'C5:1', 'E5:5'], callback);
+        audioMothChime.chime(bytes, ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"], callback);
 
     };
 

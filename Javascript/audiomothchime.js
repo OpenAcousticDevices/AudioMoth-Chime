@@ -6,14 +6,14 @@
 
 'use strict';
 
-/* global window */
-/* jslint bitwise: true */
+/*global window */
+/*jslint bitwise: true */
 
 /* Main code entry point */
 
 var AudioMothChime = function () {
 
-    var obj, audioContext, frequencyLookup, HAMMING_CODES, NOTE_REGEX, BIT_RISE, BIT_FALL, LOW_BIT_SUSTAIN, HIGH_BIT_SUSTAIN, START_STOP_BIT_SUSTAIN, CARRIER_FREQUENCY, SPEED_FACTOR, USE_HAMMING_CODE, NUMBER_OF_STOP_BITS, NUMBER_OF_START_BITS, NOTE_RISE_DURATION, NOTE_FALL_DURATION, NOTE_LONG_FALL_DURATION;
+    var obj, audioContext, frequencyLookup, HAMMING_CODES, NOTE_REGEX, BIT_RISE, BIT_FALL, LOW_BIT_SUSTAIN, HIGH_BIT_SUSTAIN, START_STOP_BIT_SUSTAIN, CARRIER_FREQUENCY, SPEED_FACTOR, USE_HAMMING_CODE, NUMBER_OF_STOP_BITS, NUMBER_OF_START_BITS, NOTE_RISE_DURATION, NOTE_FALL_DURATION, NOTE_LONG_FALL_DURATION, MIN_TONE_DURATION, MAX_TONE_DURATION;
 
     /* General constants */
 
@@ -39,6 +39,9 @@ var AudioMothChime = function () {
     NOTE_RISE_DURATION = 0.030 / SPEED_FACTOR;
     NOTE_FALL_DURATION = 0.030 / SPEED_FACTOR;
     NOTE_LONG_FALL_DURATION = 0.090 / SPEED_FACTOR;
+
+    MIN_TONE_DURATION = 500;
+    MAX_TONE_DURATION = 60000;
 
     /* Note parsing constant */
 
@@ -67,51 +70,37 @@ var AudioMothChime = function () {
 
     /* Functions to calculate CRC code */
 
-    function crcUpdate (crcIn, incr) {
+    function crc_update(crc_in, incr) {
 
-        var xor, out, CRC_POLY;
+        var xor, out, CRC_POLY = 0x1021;
 
-        CRC_POLY = 0x1021;
-
-        xor = (crcIn >> 15) & 65535;
-        out = (crcIn << 1) & 65535;
+        xor = (crc_in >> 15) & 65535;
+        out = (crc_in << 1) & 65535;
 
         if (incr > 0) {
-
             out += 1;
-
         }
 
         if (xor > 0) {
-
             out ^= CRC_POLY;
-
         }
 
         return out;
 
     }
 
-    function crc16 (bytes) {
+    function crc16(bytes) {
 
-        var i, j, low, high, crc;
-
-        crc = 0;
+        var i, j, low, high, crc = 0;
 
         for (i = 0; i < bytes.length; i += 1) {
-
             for (j = 7; j >= 0; j -= 1) {
-
-                crc = crcUpdate(crc, bytes[i] & (1 << j));
-
+                crc = crc_update(crc, bytes[i] & (1 << j));
             }
-
         }
 
         for (i = 0; i < 16; i += 1) {
-
-            crc = crcUpdate(crc, 0);
-
+            crc = crc_update(crc, 0);
         }
 
         low = crc & 255;
@@ -123,11 +112,9 @@ var AudioMothChime = function () {
 
     /* Function to encode bytes */
 
-    function encode (bytes) {
+    function encode(bytes) {
 
-        var i, j, low, high, mask, bitSequence;
-
-        bitSequence = [];
+        var i, j, low, high, mask, bitSequence = [];
 
         for (i = 0; i < bytes.length; i += 1) {
 
@@ -165,11 +152,9 @@ var AudioMothChime = function () {
 
     /* Functions to parse and generate notes */
 
-    function generateFrequencyLookup () {
+    function generateFrequencyLookup() {
 
-        var i, j, note, NOTE_PREFIXES, NOTE_DISTANCES, NUMBER_OF_OCTAVES, lookUpTable;
-
-        lookUpTable = {};
+        var i, j, note, NOTE_PREFIXES, NOTE_DISTANCES, NUMBER_OF_OCTAVES, lookUpTable = {};
 
         NUMBER_OF_OCTAVES = 10;
 
@@ -178,68 +163,56 @@ var AudioMothChime = function () {
         NOTE_DISTANCES = [-9, -8, -8, -7, -6, -6, -5, -4, -3, -3, -2, -1, -1, 0, 1, 1, 2];
 
         for (i = 0; i < NUMBER_OF_OCTAVES; i += 1) {
-
             for (j = 0; j < NOTE_PREFIXES.length; j += 1) {
-
                 note = NOTE_PREFIXES[j] + i;
                 lookUpTable[note] = Math.round(440 * Math.pow(2, i - 4 + NOTE_DISTANCES[j] / 12));
-
             }
-
         }
 
         return lookUpTable;
 
     }
 
-    function parseFrequencies (notes) {
+    function parseFrequencies(notes) {
 
-        var i, result, frequencies;
+        var i, result, frequencies = [];
 
-        frequencies = [];
+        if (notes) {
 
-        for (i = 0; i < notes.length; i += 1) {
-
-            result = notes[i].match(NOTE_REGEX);
-            if (result) {
-
-                frequencies.push(frequencyLookup[result[1] + result[2]]);
-
+            for (i = 0; i < notes.length; i += 1) {
+                result = notes[i].match(NOTE_REGEX);
+                if (result) {
+                    frequencies.push(frequencyLookup[result[1] + result[2]]);
+                }
             }
 
         }
 
         if (frequencies.length === 0) {
-
-            return [256];
-
+            return [523];
         }
 
         return frequencies;
 
     }
 
-    function parseDurations (notes) {
+    function parseDurations(notes) {
 
-        var i, result, durations;
+        var i, result, durations = [];
 
-        durations = [];
+        if (notes) {
 
-        for (i = 0; i < notes.length; i += 1) {
-
-            result = notes[i].match(NOTE_REGEX);
-            if (result) {
-
-                durations.push(parseInt(result[3], 10));
-
+            for (i = 0; i < notes.length; i += 1) {
+                result = notes[i].match(NOTE_REGEX);
+                if (result) {
+                    durations.push(parseInt(result[3], 10));
+                }
             }
 
         }
 
         if (durations.length > 0) {
-
             return durations;
-
         }
 
         return [1];
@@ -248,7 +221,7 @@ var AudioMothChime = function () {
 
     /* Functions to generate waveforms */
 
-    function createWaveformComponent (waveform, state, frequency, phase, rampUp, sustain, rampDown) {
+    function createWaveformComponent(waveform, state, frequency, phase, rampUp, sustain, rampDown) {
 
         var k, x, y, theta, volume, samplesInRampUp, samplesInSustain, samplesInRampDown;
 
@@ -288,9 +261,9 @@ var AudioMothChime = function () {
 
     }
 
-    function createWaveform (bytes, notes) {
+    function createWaveform(duration, bytes, notes) {
 
-        var i, phase, state, bitSequence, duration, durations, sumOfDurations, noteFallDuration, frequencies, waveform, waveform1, waveform2;
+        var i, phase, state, bitSequence, bitDuration, noteDuration, noteDurations, startBits, sumOfNoteDurations, noteFallDuration, frequencies, waveform, waveform1, waveform2;
 
         waveform = [];
 
@@ -298,17 +271,11 @@ var AudioMothChime = function () {
 
         waveform2 = [];
 
-        /* Generate bit sequence */
+        /* Generate note sequence */
 
-        bytes = bytes.concat(crc16(bytes));
+        noteDurations = parseDurations(notes);
 
-        bitSequence = encode(bytes);
-
-        /* Display output */
-
-        console.log('AUDIOMOTHCHIME: ' + bytes.length + ' bytes');
-
-        console.log('AUDIOMOTHCHIME: ' + bitSequence.length + ' bits');
+        frequencies = parseFrequencies(notes);
 
         /* Counters used during sound wave creation */
 
@@ -322,7 +289,9 @@ var AudioMothChime = function () {
 
         /* Initial start bits */
 
-        for (i = 0; i < NUMBER_OF_START_BITS; i += 1) {
+        startBits = bytes ? NUMBER_OF_START_BITS : Math.max(MIN_TONE_DURATION, Math.min(MAX_TONE_DURATION, duration)) / 1000 / (BIT_RISE + START_STOP_BIT_SUSTAIN + BIT_FALL);
+
+        for (i = 0; i < startBits; i += 1) {
 
             createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, START_STOP_BIT_SUSTAIN, BIT_FALL);
 
@@ -330,25 +299,41 @@ var AudioMothChime = function () {
 
         }
 
-        /* Data bits */
+        if (bytes) {
 
-        for (i = 0; i < bitSequence.length; i += 1) {
+            /* Generate bit sequence */
 
-            duration = bitSequence[i] === 1 ? HIGH_BIT_SUSTAIN : LOW_BIT_SUSTAIN;
+            bytes = bytes.concat(crc16(bytes));
 
-            createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, duration, BIT_FALL);
+            bitSequence = encode(bytes);
 
-            phase *= -1;
+            /* Display output */
 
-        }
+            console.log("AUDIOMOTH CHIME: " + bytes.length + " bytes");
 
-        /* Stop bits */
+            console.log("AUDIOMOTH CHIME: " + bitSequence.length + " bits");
 
-        for (i = 0; i < NUMBER_OF_STOP_BITS; i += 1) {
+            /* Data bits */
 
-            createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, START_STOP_BIT_SUSTAIN, BIT_FALL);
+            for (i = 0; i < bitSequence.length; i += 1) {
 
-            phase *= -1;
+                bitDuration = bitSequence[i] === 1 ? HIGH_BIT_SUSTAIN : LOW_BIT_SUSTAIN;
+
+                createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, bitDuration, BIT_FALL);
+
+                phase *= -1;
+
+            }
+
+            /* Stop bits */
+
+            for (i = 0; i < NUMBER_OF_STOP_BITS; i += 1) {
+
+                createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, START_STOP_BIT_SUSTAIN, BIT_FALL);
+
+                phase *= -1;
+
+            }
 
         }
 
@@ -360,29 +345,25 @@ var AudioMothChime = function () {
             y: 0
         };
 
-        /* Parse notes */
+        /* Calculate note duration */
 
-        durations = parseDurations(notes);
+        sumOfNoteDurations = 0;
 
-        frequencies = parseFrequencies(notes);
-
-        sumOfDurations = 0;
-
-        for (i = 0; i < durations.length; i += 1) {
-
-            sumOfDurations += durations[i];
-
+        for (i = 0; i < noteDurations.length; i += 1) {
+            sumOfNoteDurations += noteDurations[i];
         }
 
-        duration = waveform1.length / audioContext.sampleRate - durations.length * (NOTE_RISE_DURATION + NOTE_FALL_DURATION) + NOTE_FALL_DURATION - NOTE_LONG_FALL_DURATION;
+        noteDuration = waveform1.length / audioContext.sampleRate - noteDurations.length * (NOTE_RISE_DURATION + NOTE_FALL_DURATION) + NOTE_FALL_DURATION - NOTE_LONG_FALL_DURATION;
 
-        duration /= sumOfDurations;
+        noteDuration /= sumOfNoteDurations;
 
-        for (i = 0; i < durations.length; i += 1) {
+        /* Create note waveform */
 
-            noteFallDuration = i === durations.length - 1 ? NOTE_LONG_FALL_DURATION : NOTE_FALL_DURATION;
+        for (i = 0; i < noteDurations.length; i += 1) {
 
-            createWaveformComponent(waveform2, state, frequencies[i], 1, NOTE_RISE_DURATION, duration * durations[i], noteFallDuration);
+            noteFallDuration = i === noteDurations.length - 1 ? NOTE_LONG_FALL_DURATION : NOTE_FALL_DURATION;
+
+            createWaveformComponent(waveform2, state, frequencies[i], 1, NOTE_RISE_DURATION, noteDuration * noteDurations[i], noteFallDuration);
 
         }
 
@@ -398,49 +379,43 @@ var AudioMothChime = function () {
 
     }
 
-    /* Code entry point */
+    /* Function to generate sound */
 
-    frequencyLookup = generateFrequencyLookup();
+    function play(duration, bytes, notes, callback) {
 
-    obj = { };
+        function onended() {
 
-    obj.chime = function (bytes, notes, callback) {
-
-        var i, source, buffer, channel, waveform;
-
-        function onended () {
-
-            console.log('AUDIOMOTHCHIME: Done');
+            console.log("AUDIOMOTH CHIME: Done");
 
             callback();
 
         }
 
-        function perform () {
+        function perform() {
 
-            console.log('AUDIOMOTHCHIME: Start');
+            var i, source, buffer, channel, waveform;
+
+            /* Initialize audio context */
 
             if (!audioContext) {
-
                 if (window.AudioContext) {
-
                     audioContext = new window.AudioContext();
-
                 } else {
-
                     audioContext = new window.webkitAudioContext();
-
                 }
-
             }
 
             if (audioContext.state === 'suspended') {
-
                 audioContext.resume();
-
             }
 
-            waveform = createWaveform(bytes, notes);
+            /* Generate the waveform */
+
+            waveform = createWaveform(duration, bytes, notes);
+
+            /* Play the waveform */
+
+            console.log("AUDIOMOTH CHIME: Start");
 
             buffer = audioContext.createBuffer(1, waveform.length, audioContext.sampleRate);
 
@@ -467,6 +442,24 @@ var AudioMothChime = function () {
         /* Play the sound */
 
         setTimeout(perform, 200);
+
+    }
+
+    /* Code entry point */
+
+    frequencyLookup = generateFrequencyLookup();
+
+    obj = {};
+
+    obj.tone = function (duration, notes, callback) {
+
+        play(duration, null, notes, callback);
+
+    };
+
+    obj.chime = function (bytes, notes, callback) {
+
+        play(null, bytes, notes, callback);
 
     };
 

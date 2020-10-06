@@ -60,7 +60,7 @@ class AudioMothChimeConnector {
 
     }
 
-    private fun setTimeData(calendar: Calendar, data: Array<Int>, state: State) {
+    private fun setTimeData(calendar: Calendar, state: State) {
 
         /* Calculate timestamp and offset */
 
@@ -79,13 +79,19 @@ class AudioMothChimeConnector {
 
     /* Public interface function */
 
+    fun playTone(duration: Int) {
+
+        audioMothChime.tone(duration, arrayOf("C5:1"))
+
+    }
+
     fun playTime(calendar: Calendar) {
 
         /* Set up array */
 
-        var data = Array<Int>(LENGTH_OF_CHIME_PACKET) { 0 }
+        val data = Array<Int>(LENGTH_OF_CHIME_PACKET) { 0 }
 
-        var state =
+        val state =
             State(
                 data,
                 0
@@ -93,7 +99,7 @@ class AudioMothChimeConnector {
 
         /* Set the time date */
 
-        setTimeData(calendar, data, state)
+        setTimeData(calendar, state)
 
         /* Play the data */
 
@@ -125,9 +131,9 @@ class AudioMothChimeConnector {
 
         val size = LENGTH_OF_CHIME_PACKET + LENGTH_OF_DEPLOYMENT_ID
 
-        var data = Array<Int>(size) { 0 }
+        val data = Array<Int>(size) { 0 }
 
-        var state =
+        val state =
             State(
                 data,
                 0
@@ -135,7 +141,7 @@ class AudioMothChimeConnector {
 
         /* Set the time date */
 
-        setTimeData(calendar, data, state)
+        setTimeData(calendar, state)
 
         /* Set the deployment ID */
 

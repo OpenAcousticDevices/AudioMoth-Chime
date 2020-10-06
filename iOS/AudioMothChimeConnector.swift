@@ -70,6 +70,12 @@ class AudioMothChimeConnector {
     }
 
     /* Public interface function */
+    
+    func playTone(duration: Int) {
+        
+        audioMothChime.tone(duration: duration, noteArray: ["C5:1"])
+
+    }
 
     func playTime(date: Date, timezone: TimeZone) {
 

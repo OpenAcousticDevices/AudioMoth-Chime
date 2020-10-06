@@ -36,6 +36,9 @@ class AudioMothChime {
     private var NOTE_RISE_DURATION: Float = 0.030
     private var NOTE_FALL_DURATION: Float = 0.030
     private var NOTE_LONG_FALL_DURATION: Float = 0.090
+    
+    private var MIN_TONE_DURATION: Int = 500
+    private var MAX_TONE_DURATION: Int = 60000
 
     /* Note parsing constants */
 
@@ -372,7 +375,7 @@ class AudioMothChime {
 
     }
 
-    /* Functions: generate waveforms */
+    /* Functions to generate waveforms */
 
     private func createWaveformComponent( waveform: inout Array<Float>, state: inout State, sampleRate: Int, frequency: Int, phase: Float, rampUp: Float, sustain: Float, rampDown: Float) {
 
@@ -410,7 +413,7 @@ class AudioMothChime {
 
     }
 
-    private func createWaveform(sampleRate: Int, byteArray: Array<Int>, noteArray: Array<String>) -> Array<Float> {
+    private func createWaveform(sampleRate: Int, duration: Int?, byteArray: Array<Int>?, noteArray: Array<String>) -> Array<Float> {
 
         var waveform = Array<Float>()
 
@@ -418,65 +421,71 @@ class AudioMothChime {
 
         var waveform2 = Array<Float>()
 
-        /* Generate bit sequence */
-
-        let crc: CRC16 = createCRC16(bytes: byteArray)
-
-        var bytes: Array<Int> = Array<Int>()
-
-        byteArray.forEach { byte in bytes.append(byte) }
-
-        bytes.append(crc.low)
-        bytes.append(crc.high)
-        
-        let bitSequence: Array<Int> = encode(bytes: bytes)
-
-        /* Display output */
-
-        print("AUDIOMOTHCHIME: " + String(bytes.count) + " bytes")
-
-        print("AUDIOMOTHCHIME: " + String(bitSequence.count) + " bits")
-        
         /* Generate note sequence */
 
         let notes: Array<Note> = parseNotes(noteArray: noteArray)
-
+    
         /* Counters used during sound waveform creation */
 
         var state: State = State()
 
         var phase: Float = 1.0
-
+        
         /* Initial start bits */
+        
+        let startBits: Int = duration == nil ? NUMBER_OF_START_BITS : Int(floor(Float(max(MIN_TONE_DURATION, min(MAX_TONE_DURATION, duration!))) / 1000.0 / (BIT_RISE + START_STOP_BIT_SUSTAIN + BIT_FALL)))
 
-        for _ in 0..<NUMBER_OF_START_BITS {
+        for _ in 0..<startBits {
 
             createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: START_STOP_BIT_SUSTAIN, rampDown: BIT_FALL)
 
             phase *= -1.0
 
         }
+        
+        if byteArray != nil {
+            
+            /* Generate bit sequence */
 
-        /* Data bits */
+            let crc: CRC16 = createCRC16(bytes: byteArray!)
 
-        bitSequence.forEach { byte in
+            var bytes: Array<Int> = Array<Int>()
 
-            let duration = byte == 1 ? HIGH_BIT_SUSTAIN : LOW_BIT_SUSTAIN
+            byteArray!.forEach { byte in bytes.append(byte) }
 
-            createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: duration, rampDown: BIT_FALL)
+            bytes.append(crc.low)
+            bytes.append(crc.high)
+        
+            let bitSequence: Array<Int> = encode(bytes: bytes)
 
-            phase *= -1.0
+            /* Display output */
 
-        }
+            print("AUDIOMOTHCHIME: " + String(bytes.count) + " bytes")
 
-        /* Stop bits */
+            print("AUDIOMOTHCHIME: " + String(bitSequence.count) + " bits")
 
-        for _ in 0..<NUMBER_OF_STOP_BITS {
+            /* Data bits */
 
-            createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: START_STOP_BIT_SUSTAIN, rampDown: BIT_FALL)
+            bitSequence.forEach { byte in
 
-            phase *= -1.0
+                let duration = byte == 1 ? HIGH_BIT_SUSTAIN : LOW_BIT_SUSTAIN
 
+                createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: duration, rampDown: BIT_FALL)
+
+                phase *= -1.0
+
+            }
+
+            /* Stop bits */
+
+            for _ in 0..<NUMBER_OF_STOP_BITS {
+
+                createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: START_STOP_BIT_SUSTAIN, rampDown: BIT_FALL)
+
+                phase *= -1.0
+
+            }
+            
         }
 
         /* Reset counter */
@@ -510,16 +519,16 @@ class AudioMothChime {
         return waveform
 
     }
-
-    /* Public chime function */
     
-    func chime(byteArray: Array<Int>, noteArray: Array<String>) {
+    /* Function to generate sound */
+
+    func play(duration: Int?, byteArray: Array<Int>?, noteArray: Array<String>) {
 
         /* Generate waveform */
 
         let SAMPLE_RATE: Int = 44100
 
-        let waveform: Array<Float> = createWaveform(sampleRate: SAMPLE_RATE, byteArray: byteArray, noteArray: noteArray)
+        let waveform: Array<Float> = createWaveform(sampleRate: SAMPLE_RATE, duration: duration, byteArray: byteArray, noteArray: noteArray)
         
         /* Make the WAV header */
         
@@ -604,6 +613,20 @@ class AudioMothChime {
             print(error)
             
         }
+
+    }
+
+    /* Public chime function */
+    
+    func tone(duration: Int, noteArray: Array<String>) {
+
+        play(duration: duration, byteArray: nil, noteArray: noteArray)
+
+    }
+
+    func chime(byteArray: Array<Int>, noteArray: Array<String>) {
+
+        play(duration: nil, byteArray: byteArray, noteArray: noteArray)
 
     }
 

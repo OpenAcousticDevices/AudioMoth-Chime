@@ -41,6 +41,9 @@ class AudioMothChime {
     private val NOTE_FALL_DURATION: Float = 0.030f / SPEED_FACTOR
     private val NOTE_LONG_FALL_DURATION: Float = 0.090f / SPEED_FACTOR
 
+    private val MIN_TONE_DURATION: Int = 500
+    private val MAX_TONE_DURATION: Int = 60000
+
     /* Note parsing constants */
 
     private val REGEX = Regex(
@@ -249,7 +252,7 @@ class AudioMothChime {
         var y: Float = 0.0f
     )
 
-    private data class Note(var frequency: Int = 256, var duration: Int = 1)
+    private data class Note(var frequency: Int = 523, var duration: Int = 1)
 
     private data class CRC16(var low: Int = 0, var high: Int = 0)
 
@@ -331,7 +334,7 @@ class AudioMothChime {
 
     private fun parseNotes(noteArray: Array<String>): ArrayList<Note> {
 
-        var notes = ArrayList<Note>()
+        val notes = ArrayList<Note>()
 
         noteArray.forEach {
 
@@ -417,7 +420,8 @@ class AudioMothChime {
 
     private fun createWaveform(
         sampleRate: Int,
-        byteArray: Array<Int>,
+        duration: Int?,
+        byteArray: Array<Int>?,
         noteArray: Array<String>
     ): ArrayList<Float> {
 
@@ -426,25 +430,6 @@ class AudioMothChime {
         val waveform1 = ArrayList<Float>()
 
         val waveform2 = ArrayList<Float>()
-
-        /* Generate bit sequence */
-
-        val crc: CRC16 = createCRC16(byteArray)
-
-        val bytes: ArrayList<Int> = ArrayList<Int>()
-
-        byteArray.forEach { bytes.add(it) }
-
-        bytes.add(crc.low)
-        bytes.add(crc.high)
-
-        val bitSequence: ArrayList<Int> = encode(bytes)
-
-        /* Display output */
-
-        println("AUDIOMOTHCHIME: " + bytes.size + " bytes")
-
-        println("AUDIOMOTHCHIME: " + bitSequence.size + " bits")
 
         /* Generate note sequence */
 
@@ -459,7 +444,9 @@ class AudioMothChime {
 
         /* Initial start bits */
 
-        for (i in 0 until NUMBER_OF_START_BITS) {
+        val startBits: Int = if (duration == null) NUMBER_OF_START_BITS else floor(max(MIN_TONE_DURATION, min(MAX_TONE_DURATION, duration)) / 1000.0f / (BIT_RISE + START_STOP_BIT_SUSTAIN + BIT_FALL)).toInt();
+
+        for (i in 0 until startBits) {
 
             createWaveformComponent(
                 waveform1,
@@ -476,43 +463,66 @@ class AudioMothChime {
 
         }
 
-        /* Data bits */
+        if (byteArray != null) {
 
-        bitSequence.forEach {
+            /* Generate bit sequence */
 
-            val duration = if (it == 1) HIGH_BIT_SUSTAIN else LOW_BIT_SUSTAIN
+            val crc: CRC16 = createCRC16(byteArray)
 
-            createWaveformComponent(
-                waveform1,
-                state,
-                sampleRate,
-                CARRIER_FREQUENCY,
-                phase,
-                BIT_RISE,
-                duration,
-                BIT_FALL
-            )
+            val bytes: ArrayList<Int> = ArrayList<Int>()
 
-            phase *= -1.0f
+            byteArray.forEach { bytes.add(it) }
 
-        }
+            bytes.add(crc.low)
+            bytes.add(crc.high)
 
-        /* Stop bits */
+            val bitSequence: ArrayList<Int> = encode(bytes)
 
-        for (i in 0 until NUMBER_OF_STOP_BITS) {
+            /* Display output */
 
-            createWaveformComponent(
-                waveform1,
-                state,
-                sampleRate,
-                CARRIER_FREQUENCY,
-                phase,
-                BIT_RISE,
-                START_STOP_BIT_SUSTAIN,
-                BIT_FALL
-            )
+            println("AUDIOMOTHCHIME: " + bytes.size + " bytes")
 
-            phase *= -1.0f
+            println("AUDIOMOTHCHIME: " + bitSequence.size + " bits")
+
+            /* Data bits */
+
+            bitSequence.forEach {
+
+                val bitDuration = if (it == 1) HIGH_BIT_SUSTAIN else LOW_BIT_SUSTAIN
+
+                createWaveformComponent(
+                    waveform1,
+                    state,
+                    sampleRate,
+                    CARRIER_FREQUENCY,
+                    phase,
+                    BIT_RISE,
+                    bitDuration,
+                    BIT_FALL
+                )
+
+                phase *= -1.0f
+
+            }
+
+            /* Stop bits */
+
+            for (i in 0 until NUMBER_OF_STOP_BITS) {
+
+                createWaveformComponent(
+                    waveform1,
+                    state,
+                    sampleRate,
+                    CARRIER_FREQUENCY,
+                    phase,
+                    BIT_RISE,
+                    START_STOP_BIT_SUSTAIN,
+                    BIT_FALL
+                )
+
+                phase *= -1.0f
+
+            }
 
         }
 
@@ -559,9 +569,13 @@ class AudioMothChime {
 
     }
 
-    /* Public chime function */
+    /* Function to generate sound */
 
-    fun chime(byteArray: Array<Int>, noteArray: Array<String>) {
+    private fun play(
+        duration: Int?, 
+        byteArray: Array<Int>?, 
+        noteArray: Array<String>
+    ) {
 
         /* Configure AudioTrack */
 
@@ -602,7 +616,7 @@ class AudioMothChime {
 
         /* Generate waveform */
 
-        val waveform: ArrayList<Float> = createWaveform(sampleRate, byteArray, noteArray)
+        val waveform: ArrayList<Float> = createWaveform(sampleRate, duration, byteArray, noteArray)
 
         /* Play waveform */
 
@@ -619,6 +633,20 @@ class AudioMothChime {
         player.write(buffer, 0, waveform.size)
 
         println("AUDIOMOTHCHIME: Done")
+
+    }
+
+    /* Public chime function */
+
+    fun tone(duration: Int, noteArray: Array<String>) {
+
+        play(duration, null, noteArray)
+
+    }
+
+    fun chime(byteArray: Array<Int>, noteArray: Array<String>) {
+
+        play(null, byteArray, noteArray)
 
     }
 
