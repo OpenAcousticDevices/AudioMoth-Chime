@@ -4,7 +4,7 @@ The AudioMoth-Chime library provide support to set the time and deployment ID of
 
 ### Android ###
 
-The Kotlin Android library contains two classes that must be included in the app. They define AudioMothChime and AudioMothChimeConnector objects. The latter exposes two public functions:
+The Kotlin Android library contains two classes that must be included in the app. They define AudioMothChime and AudioMothChimeConnector objects. The latter exposes three public functions:
 
 ```kotlin
 	fun playTone(duration: Int)
@@ -36,7 +36,7 @@ Below is an example of their use:
 
 ### Javascript ###
 
-The Javascript library contains two classes that must be included in the webpage. They define the global AudioMothChime and AudioMothChimeConnector objects. The latter exposes two public functions:
+The Javascript library contains two classes that must be included in the webpage. They define the global AudioMothChime and AudioMothChimeConnector objects. The latter exposes three public functions:
 
 ```javascript
 	playTone(duration, callback);
@@ -68,7 +68,7 @@ Below is an example of their use:
 
 ### iOS ###
 
-The Swift iOS library contains two classes that must be included in the app. They define AudioMothChime and AudioMothChimeConnector objects. The latter exposes two public functions:
+The Swift iOS library contains two classes that must be included in the app. They define AudioMothChime and AudioMothChimeConnector objects. The latter exposes three public functions:
 
 ```swift
 	func playTone(duration: Int)
