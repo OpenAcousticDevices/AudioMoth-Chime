@@ -1,39 +1,37 @@
 # AudioMoth Chime #
 
-A library which provides support for setting the time and deployment ID of an AudioMoth using an acoustic tone.
-
-Compatible with [standard AudioMoth firmware](https://github.com/OpenAcousticDevices/AudioMoth-Firmware-Basic/releases) 1.5.0 and later.
-
-## Usage ##
+The AudioMoth-Chime library provide support to set the time and deployment ID of an AudioMoth using an acoustic tone.
 
 ### Android ###
 
 The Kotlin Android library contains two classes that must be included in the app. They define AudioMothChime and AudioMothChimeConnector objects. The latter exposes two public functions:
 
 ```kotlin
-fun playTime(calendar: Calendar)
+	fun playTone(duration: Int)
 
-fun playTimeAndDeploymentID(calendar: Calendar, deploymentID: Array<Int>)
+	fun playTime(calendar: Calendar)
+	
+	fun playTimeAndDeploymentID(calendar: Calendar, deploymentID: Array<Int>)
 ```
 
 Below is an example of their use:
 
 ```kotlin
-val chimeButton: Button = findViewById(R.id.chimeButton)
+	val chimeButton: Button = findViewById(R.id.chimeButton)
 
-val audioMothConnector = AudioMothChimeConnector()
+	val audioMothConnector = AudioMothChimeConnector()
 
-chimeButton.setOnClickListener{
+	chimeButton.setOnClickListener{
 
-	val calendar = Calendar.getInstance()
+		val calendar = Calendar.getInstance()
 
-	Thread {
+		Thread {
 
-		audioMothConnector.playTime(calendar)
+			audioMothConnector.playTime(calendar)
 
-	}.start()
+		}.start()
 
-}
+	}
 ```
 
 ### Javascript ###
@@ -41,27 +39,31 @@ chimeButton.setOnClickListener{
 The Javascript library contains two classes that must be included in the webpage. They define the global AudioMothChime and AudioMothChimeConnector objects. The latter exposes two public functions:
 
 ```javascript
-playTime(callback);
+	playTone(duration, callback);
 
-playTimeAndDeploymentID(deploymentID, callback);
+	playTime(date, callback);
+	
+	playTimeAndDeploymentID(date, deploymentID, callback);
 ```
 
 Below is an example of their use:
 
 ```javascript
-var audioMothChimeConnector = new AudioMothChimeConnector();
+	var audioMothChimeConnector = new AudioMothChimeConnector();
 
-document.getElementById("chime_button").addEventListener("click", function () {
+	document.getElementById("chime_button").addEventListener("click", function () {
 
-	document.getElementById("chime_button").disabled = true;
+		document.getElementById("chime_button").disabled = true;
 
-	audioMothChimeConnector.playTime(function () {
+		var date = new Date();
 
-		document.getElementById("chime_button").disabled = false;
+		audioMothChimeConnector.playTime(function () {
+
+			document.getElementById("chime_button").disabled = false;
+
+		});
 
 	});
-
-});
 ```
 
 ### iOS ###
@@ -69,25 +71,27 @@ document.getElementById("chime_button").addEventListener("click", function () {
 The Swift iOS library contains two classes that must be included in the app. They define AudioMothChime and AudioMothChimeConnector objects. The latter exposes two public functions:
 
 ```swift
-func playTime(date: Date, timezone: TimeZone)
+	func playTone(duration: Int)
 
-func playTimeAndDeploymentID(date: Date, timezone: TimeZone, deploymentID: Array<Int>)
+	func playTime(date: Date, timezone: TimeZone)
+	
+	func playTimeAndDeploymentID(date: Date, timezone: TimeZone, deploymentID: Array<Int>)
 ```
 
 Below is an example of their use:
 
 ```swift
-Button(action: {
-	
-	let date: Date = Date()
-	
-	let timezone: TimeZone = TimeZone.current
-	
-	audioMothChimeConnector.playTime(date: date, timezone: timezone)
+	Button(action: {
+		
+		let date: Date = Date()
+		
+		let timezone: TimeZone = TimeZone.current
+		
+		audioMothChimeConnector.playTime(date: date, timezone: timezone)
 
-}) {
-	Text("Play Chime")
-}
+	}) {
+		Text("Play Chime")
+	}
 ```
 
 ### Related Repositories ###
