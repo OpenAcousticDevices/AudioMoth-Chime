@@ -14,6 +14,8 @@ import android.os.Build
 
 import kotlin.math.*
 
+import java.util.Calendar
+
 class AudioMothChime {
 
     /* General constants */
@@ -442,28 +444,26 @@ class AudioMothChime {
 
         var phase: Float = 1.0f
 
-        /* Initial start bits */
-
-        val startBits: Int = if (duration == null) NUMBER_OF_START_BITS else floor(max(MIN_TONE_DURATION, min(MAX_TONE_DURATION, duration)) / 1000.0f / (BIT_RISE + START_STOP_BIT_SUSTAIN + BIT_FALL)).toInt();
-
-        for (i in 0 until startBits) {
-
-            createWaveformComponent(
-                waveform1,
-                state,
-                sampleRate,
-                CARRIER_FREQUENCY,
-                phase,
-                BIT_RISE,
-                START_STOP_BIT_SUSTAIN,
-                BIT_FALL
-            )
-
-            phase *= -1.0f
-
-        }
-
         if (byteArray != null) {
+
+            /* Initial start bits */
+
+            for (i in 0 until NUMBER_OF_START_BITS) {
+
+                createWaveformComponent(
+                    waveform1,
+                    state,
+                    sampleRate,
+                    CARRIER_FREQUENCY,
+                    phase,
+                    BIT_RISE,
+                    START_STOP_BIT_SUSTAIN,
+                    BIT_FALL
+                )
+
+                phase *= -1.0f
+
+            }
 
             /* Generate bit sequence */
 
@@ -480,9 +480,9 @@ class AudioMothChime {
 
             /* Display output */
 
-            println("AUDIOMOTHCHIME: " + bytes.size + " bytes")
+            println("AUDIOMOTH CHIME: " + bytes.size + " bytes")
 
-            println("AUDIOMOTHCHIME: " + bitSequence.size + " bits")
+            println("AUDIOMOTH CHIME: " + bitSequence.size + " bits")
 
             /* Data bits */
 
@@ -517,6 +517,40 @@ class AudioMothChime {
                     phase,
                     BIT_RISE,
                     START_STOP_BIT_SUSTAIN,
+                    BIT_FALL
+                )
+
+                phase *= -1.0f
+
+            }
+
+        } else {
+
+            val tonePairs: Int = floor(max(MIN_TONE_DURATION, min(MAX_TONE_DURATION, duration!!)) / 1000.0f / (2 * BIT_RISE + HIGH_BIT_SUSTAIN + LOW_BIT_SUSTAIN + 2 * BIT_FALL)).toInt();
+
+            for (i in 0 until tonePairs) {
+
+                createWaveformComponent(
+                    waveform1,
+                    state,
+                    sampleRate,
+                    CARRIER_FREQUENCY,
+                    phase,
+                    BIT_RISE,
+                    HIGH_BIT_SUSTAIN,
+                    BIT_FALL
+                )
+
+                phase *= -1.0f
+
+                createWaveformComponent(
+                    waveform1,
+                    state,
+                    sampleRate,
+                    CARRIER_FREQUENCY,
+                    phase,
+                    BIT_RISE,
+                    LOW_BIT_SUSTAIN,
                     BIT_FALL
                 )
 
@@ -572,6 +606,7 @@ class AudioMothChime {
     /* Function to generate sound */
 
     private fun play(
+        sendTime: Calendar?,
         duration: Int?, 
         byteArray: Array<Int>?, 
         noteArray: Array<String>
@@ -626,13 +661,37 @@ class AudioMothChime {
             buffer[index] = (fl * Short.MAX_VALUE).toShort()
         }
 
-        println("AUDIOMOTHCHIME: Start")
+        /* Play the waveform at the appropriate time */
+
+        if (sendTime != null) {
+
+            var now = Calendar.getInstance()
+
+            var delay = sendTime.getTimeInMillis() - now.getTimeInMillis()
+
+            if (delay > 0) {
+
+                println("AUDIOMOTH CHIME: Waiting " + delay + " milliseconds")
+
+                while (delay > 0) {
+
+                    now = Calendar.getInstance()
+
+                    delay = sendTime.getTimeInMillis() - now.getTimeInMillis()
+
+                }
+
+            }
+
+        }
+
+        println("AUDIOMOTH CHIME: Start")
 
         player.play()
 
         player.write(buffer, 0, waveform.size)
 
-        println("AUDIOMOTHCHIME: Done")
+        println("AUDIOMOTH CHIME: Done")
 
     }
 
@@ -640,13 +699,13 @@ class AudioMothChime {
 
     fun tone(duration: Int, noteArray: Array<String>) {
 
-        play(duration, null, noteArray)
+        play(null, duration, null, noteArray)
 
     }
 
-    fun chime(byteArray: Array<Int>, noteArray: Array<String>) {
+    fun chime(sendTime: Calendar?, byteArray: Array<Int>, noteArray: Array<String>) {
 
-        play(null, byteArray, noteArray)
+        play(sendTime, null, byteArray, noteArray)
 
     }
 

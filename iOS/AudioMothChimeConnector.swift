@@ -19,7 +19,9 @@ class AudioMothChimeConnector {
 
     private let MILLISECONDS_IN_SECOND = 1000
     private let SECONDS_IN_MINUTE = 60
-
+    private let MINIMUM_DELAY = 0.200
+    private let ACOUSTIC_LAG = 0.080
+    
     /* AudioMothChime object */
 
     private let audioMothChime = AudioMothChime()
@@ -57,7 +59,7 @@ class AudioMothChimeConnector {
 
         /* Calculate timestamp and offset */
 
-        let timestamp: Int = Int(date.timeIntervalSince1970)
+        let timestamp: Int = Int(date.timeIntervalSince1970 + 0.5)
 
         let timezoneMinutes: Int = timezone.secondsFromGMT() / SECONDS_IN_MINUTE
         
@@ -69,7 +71,7 @@ class AudioMothChimeConnector {
 
     }
 
-    /* Public interface function */
+    /* Public interface functions */
     
     func playTone(duration: Int) {
         
@@ -86,12 +88,18 @@ class AudioMothChimeConnector {
         var data = Array<Int>(repeating: 0, count: LENGTH_OF_CHIME_PACKET)
 
         /* Set the time date */
-
-        setTimeData(data: &data, index: &index, date: date, timezone: timezone)
+        
+        var delay = 1.0 - date.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) - ACOUSTIC_LAG
+        
+        if delay < MINIMUM_DELAY { delay += 1.0 }
+        
+        let sendTime = date.addingTimeInterval(delay)
+        
+        setTimeData(data: &data, index: &index, date: sendTime, timezone: timezone)
 
         /* Play the data */
 
-        audioMothChime.chime(byteArray: data, noteArray: ["C5:1", "D5:1", "E5:1", "C5:3"])
+        audioMothChime.chime(sendTime: sendTime, byteArray: data, noteArray: ["C5:1", "D5:1", "E5:1", "C5:3"])
 
     }
 
@@ -114,8 +122,14 @@ class AudioMothChimeConnector {
         var data: Array<Int> = Array<Int>(repeating: 0, count: LENGTH_OF_CHIME_PACKET + LENGTH_OF_DEPLOYMENT_ID)
 
         /* Set the time date */
+        
+        var delay = 1.0 - date.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) - ACOUSTIC_LAG
+        
+        if delay < MINIMUM_DELAY { delay += 1.0 }
+        
+        let sendTime = date.addingTimeInterval(delay)
 
-        setTimeData(data: &data, index: &index, date: date, timezone: timezone)
+        setTimeData(data: &data, index: &index, date: sendTime, timezone: timezone)
 
         /* Set the deployment ID */
 
@@ -129,7 +143,7 @@ class AudioMothChimeConnector {
 
         /* Play the data */
 
-        audioMothChime.chime(byteArray: data, noteArray: ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"])
+        audioMothChime.chime(sendTime: sendTime, byteArray: data, noteArray: ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"])
 
     }
 

@@ -6,7 +6,7 @@
 
 package info.openacousticdevices.audiomothchime
 
-import java.util.Calendar
+import java.util.*
 
 class AudioMothChimeConnector {
 
@@ -21,6 +21,8 @@ class AudioMothChimeConnector {
 
     private val MILLISECONDS_IN_SECOND = 1000
     private val SECONDS_IN_MINUTE = 60
+    private val MINIMUM_DELAY = 200
+    private val ACOUSTIC_LAG = 100
 
     /* AudioMothChime object */
 
@@ -64,7 +66,7 @@ class AudioMothChimeConnector {
 
         /* Calculate timestamp and offset */
 
-        val timestamp: Int = (calendar.timeInMillis / MILLISECONDS_IN_SECOND).toInt()
+        val timestamp: Int = ((calendar.timeInMillis + MILLISECONDS_IN_SECOND / 2 ) / MILLISECONDS_IN_SECOND).toInt()
 
         val timezoneMinutes: Int =
             (calendar.timeZone.rawOffset + calendar.timeZone.dstSavings) / SECONDS_IN_MINUTE / MILLISECONDS_IN_SECOND
@@ -99,11 +101,20 @@ class AudioMothChimeConnector {
 
         /* Set the time date */
 
-        setTimeData(calendar, state)
+        var delay = MILLISECONDS_IN_SECOND - calendar.getTimeInMillis() % MILLISECONDS_IN_SECOND - ACOUSTIC_LAG
+
+        if (delay < MINIMUM_DELAY) { delay += MILLISECONDS_IN_SECOND }
+
+        val sendTime = Calendar.getInstance()
+
+        sendTime.setTimeInMillis(calendar.getTimeInMillis() + delay)
+
+        setTimeData(sendTime, state)
 
         /* Play the data */
 
         audioMothChime.chime(
+            sendTime,
             data,
             arrayOf(
                 "C5:1",
@@ -141,7 +152,15 @@ class AudioMothChimeConnector {
 
         /* Set the time date */
 
-        setTimeData(calendar, state)
+        var delay = MILLISECONDS_IN_SECOND - calendar.getTimeInMillis() % MILLISECONDS_IN_SECOND - ACOUSTIC_LAG
+
+        if (delay < MINIMUM_DELAY) { delay += MILLISECONDS_IN_SECOND }
+
+        val sendTime = Calendar.getInstance()
+
+        sendTime.setTimeInMillis(calendar.getTimeInMillis() + delay)
+
+        setTimeData(sendTime, state)
 
         /* Set the deployment ID */
 
@@ -154,6 +173,7 @@ class AudioMothChimeConnector {
         /* Play the data */
 
         audioMothChime.chime(
+            sendTime,
             data,
             arrayOf(
                 "Eb5:1",

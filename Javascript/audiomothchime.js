@@ -263,7 +263,7 @@ var AudioMothChime = function () {
 
     function createWaveform(duration, bytes, notes) {
 
-        var i, phase, state, bitSequence, bitDuration, noteDuration, noteDurations, startBits, sumOfNoteDurations, noteFallDuration, frequencies, waveform, waveform1, waveform2;
+        var i, phase, state, bitSequence, bitDuration, noteDuration, noteDurations, tonePairs, sumOfNoteDurations, noteFallDuration, frequencies, waveform, waveform1, waveform2;
 
         waveform = [];
 
@@ -287,19 +287,19 @@ var AudioMothChime = function () {
 
         phase = 1;
 
-        /* Initial start bits */
-
-        startBits = bytes ? NUMBER_OF_START_BITS : Math.max(MIN_TONE_DURATION, Math.min(MAX_TONE_DURATION, duration)) / 1000 / (BIT_RISE + START_STOP_BIT_SUSTAIN + BIT_FALL);
-
-        for (i = 0; i < startBits; i += 1) {
-
-            createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, START_STOP_BIT_SUSTAIN, BIT_FALL);
-
-            phase *= -1;
-
-        }
+        /* Generate data or start tone */
 
         if (bytes) {
+
+            /* Initial start bits */
+
+            for (i = 0; i < NUMBER_OF_START_BITS; i += 1) {
+
+                createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, START_STOP_BIT_SUSTAIN, BIT_FALL);
+
+                phase *= -1;
+
+            }
 
             /* Generate bit sequence */
 
@@ -330,6 +330,22 @@ var AudioMothChime = function () {
             for (i = 0; i < NUMBER_OF_STOP_BITS; i += 1) {
 
                 createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, START_STOP_BIT_SUSTAIN, BIT_FALL);
+
+                phase *= -1;
+
+            }
+
+        } else {
+
+            tonePairs = Math.max(MIN_TONE_DURATION, Math.min(MAX_TONE_DURATION, duration)) / 1000 / (2 * BIT_RISE + HIGH_BIT_SUSTAIN + LOW_BIT_SUSTAIN + 2 * BIT_FALL);
+
+            for (i = 0; i < tonePairs; i += 1) {
+
+                createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, HIGH_BIT_SUSTAIN, BIT_FALL);
+
+                phase *= -1;
+
+                createWaveformComponent(waveform1, state, CARRIER_FREQUENCY, phase, BIT_RISE, LOW_BIT_SUSTAIN, BIT_FALL);
 
                 phase *= -1;
 
@@ -381,7 +397,7 @@ var AudioMothChime = function () {
 
     /* Function to generate sound */
 
-    function play(duration, bytes, notes, callback) {
+    function play(sendTime, duration, bytes, notes, callback) {
 
         function onended() {
 
@@ -393,7 +409,7 @@ var AudioMothChime = function () {
 
         function perform() {
 
-            var i, source, buffer, channel, waveform;
+            var i, now, delay, source, buffer, channel, waveform;
 
             /* Initialize audio context */
 
@@ -413,9 +429,7 @@ var AudioMothChime = function () {
 
             waveform = createWaveform(duration, bytes, notes);
 
-            /* Play the waveform */
-
-            console.log("AUDIOMOTH CHIME: Start");
+            /* Generate the waveform */
 
             buffer = audioContext.createBuffer(1, waveform.length, audioContext.sampleRate);
 
@@ -435,13 +449,43 @@ var AudioMothChime = function () {
 
             source.connect(audioContext.destination);
 
-            source.start();
+            /* Play the waveform at the appropriate time */
+
+            delay = 0;
+
+            if (sendTime) {
+
+                now = new Date();
+
+                delay = sendTime.getTime() - now.getTime();
+
+            }
+            
+            if (delay <= 0) {
+
+                console.log("AUDIOMOTH CHIME: Start");
+                
+                source.start();
+        
+            } else {
+
+                console.log("AUDIOMOTH CHIME: Waiting " + delay + " milliseconds");
+
+                setTimeout(function() {
+
+                    console.log("AUDIOMOTH CHIME: Start");
+ 
+                    source.start()
+                    
+                }, delay);
+        
+            }
 
         }
 
         /* Play the sound */
-
-        setTimeout(perform, 200);
+        
+        setTimeout(perform, 0);
 
     }
 
@@ -453,13 +497,13 @@ var AudioMothChime = function () {
 
     obj.tone = function (duration, notes, callback) {
 
-        play(duration, null, notes, callback);
+        play(null, duration, null, notes, callback);
 
     };
 
-    obj.chime = function (bytes, notes, callback) {
+    obj.chime = function (sendTime, bytes, notes, callback) {
 
-        play(null, bytes, notes, callback);
+        play(sendTime, null, bytes, notes, callback);
 
     };
 

@@ -11,7 +11,13 @@
 
 var AudioMothChimeConnector = function () {
 
-    var obj, audioMothChime, LENGTH_OF_DEPLOYMENT_ID = 8;
+    var obj, audioMothChime, MINIMUM_DELAY, MILLISECONDS_IN_SECOND, LENGTH_OF_DEPLOYMENT_ID;
+
+    MINIMUM_DELAY = 200;
+
+    LENGTH_OF_DEPLOYMENT_ID = 8;
+
+    MILLISECONDS_IN_SECOND = 1000;
 
     /* Function to encode little-endian value */
 
@@ -59,15 +65,31 @@ var AudioMothChimeConnector = function () {
 
     obj.playTime = function (date, callback) {
 
-        var bytes = setTimeData(date);
+        var bytes, delay, sendTime = new Date(date);
 
-        audioMothChime.chime(bytes, ["C5:1", "D5:1", "E5:1", "C5:3"], callback);
+        delay = MILLISECONDS_IN_SECOND - sendTime.getMilliseconds();
+
+        if (delay < MINIMUM_DELAY) delay += MILLISECONDS_IN_SECOND;
+
+        sendTime.setMilliseconds(sendTime.getMilliseconds() + delay);
+
+        bytes = setTimeData(sendTime);
+
+        audioMothChime.chime(sendTime, bytes, ["C5:1", "D5:1", "E5:1", "C5:3"], callback);
 
     };
 
     obj.playTimeAndDeploymentID = function (date, deploymentID, callback) {
 
-        var i, bytes = setTimeData(date);
+        var i, bytes, delay, sendTime = new Date(date);
+
+        delay = MILLISECONDS_IN_SECOND - sendTime.getMilliseconds();
+
+        if (delay < MINIMUM_DELAY) delay += MILLISECONDS_IN_SECOND;
+
+        sendTime.setMilliseconds(sendTime.getMilliseconds() + delay);
+       
+        bytes = setTimeData(sendTime);
 
         if (!deploymentID || deploymentID.length !== LENGTH_OF_DEPLOYMENT_ID) { return; }
 
@@ -77,7 +99,7 @@ var AudioMothChimeConnector = function () {
 
         }
 
-        audioMothChime.chime(bytes, ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"], callback);
+        audioMothChime.chime(sendTime, bytes, ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"], callback);
 
     };
 

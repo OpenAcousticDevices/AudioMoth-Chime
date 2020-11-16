@@ -431,19 +431,19 @@ class AudioMothChime {
 
         var phase: Float = 1.0
         
-        /* Initial start bits */
-        
-        let startBits: Int = duration == nil ? NUMBER_OF_START_BITS : Int(floor(Float(max(MIN_TONE_DURATION, min(MAX_TONE_DURATION, duration!))) / 1000.0 / (BIT_RISE + START_STOP_BIT_SUSTAIN + BIT_FALL)))
-
-        for _ in 0..<startBits {
-
-            createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: START_STOP_BIT_SUSTAIN, rampDown: BIT_FALL)
-
-            phase *= -1.0
-
-        }
+        /* Generate data or tone */
         
         if byteArray != nil {
+ 
+            /* Initial start bits */
+            
+            for _ in 0..<NUMBER_OF_START_BITS {
+
+                createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: START_STOP_BIT_SUSTAIN, rampDown: BIT_FALL)
+
+                phase *= -1.0
+
+            }
             
             /* Generate bit sequence */
 
@@ -460,9 +460,9 @@ class AudioMothChime {
 
             /* Display output */
 
-            print("AUDIOMOTHCHIME: " + String(bytes.count) + " bytes")
+            print("AUDIOMOTH CHIME: " + String(bytes.count) + " bytes")
 
-            print("AUDIOMOTHCHIME: " + String(bitSequence.count) + " bits")
+            print("AUDIOMOTH CHIME: " + String(bitSequence.count) + " bits")
 
             /* Data bits */
 
@@ -485,6 +485,23 @@ class AudioMothChime {
                 phase *= -1.0
 
             }
+            
+        } else {
+
+            let tonePairs: Int = Int(floor(Float(max(MIN_TONE_DURATION, min(MAX_TONE_DURATION, duration!))) / 1000.0 / (2 * BIT_RISE + HIGH_BIT_SUSTAIN + LOW_BIT_SUSTAIN + 2 * BIT_FALL)))
+
+            for _ in 0..<tonePairs {
+
+                createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: HIGH_BIT_SUSTAIN, rampDown: BIT_FALL)
+
+                phase *= -1.0
+
+                createWaveformComponent(waveform: &waveform1, state: &state, sampleRate: sampleRate, frequency: CARRIER_FREQUENCY, phase: phase, rampUp: BIT_RISE, sustain: LOW_BIT_SUSTAIN, rampDown: BIT_FALL)
+
+                phase *= -1.0
+
+            }
+            
             
         }
 
@@ -522,7 +539,7 @@ class AudioMothChime {
     
     /* Function to generate sound */
 
-    func play(duration: Int?, byteArray: Array<Int>?, noteArray: Array<String>) {
+    func play(sendTime: Date?, duration: Int?, byteArray: Array<Int>?, noteArray: Array<String>) {
 
         /* Generate waveform */
 
@@ -596,17 +613,47 @@ class AudioMothChime {
         
         }
         
+        /* Play the waveform at the appropriate time */
+        
         do {
             
-            print("AUDIOMOTHCHIME: Start")
-
+            /* Initialise the audio player */
+            
             audioPlayer = try AVAudioPlayer(data: data, fileTypeHint: "wav")
+            
+            audioPlayer.prepareToPlay()
+            
+            /* Wait for the correct play time */
+            
+            if (sendTime != nil) {
+                
+                var now = Date()
+                
+                if (now < sendTime!) {
+                    
+                    let delay = sendTime!.timeIntervalSince(now) * 1000
+                    
+                    print("AUDIOMOTH CHIME: Waiting " + String(format: "%0.0f", delay) + " milliseconds")
+                    
+                    while (now < sendTime!) {
                         
+                        now = Date()
+                        
+                    }
+                    
+                }
+                
+            }
+            
+            /* Play the audio */
+            
+            print("AUDIOMOTH CHIME: Start")
+            
             audioPlayer.play()
             
             while (audioPlayer.isPlaying ) { }
             
-            print("AUDIOMOTHCHIME: Done")
+            print("AUDIOMOTH CHIME: Done")
             
         } catch {
             
@@ -617,16 +664,16 @@ class AudioMothChime {
     }
 
     /* Public chime function */
-    
+
     func tone(duration: Int, noteArray: Array<String>) {
 
-        play(duration: duration, byteArray: nil, noteArray: noteArray)
+        play(sendTime: nil, duration: duration, byteArray: nil, noteArray: noteArray)
 
     }
 
-    func chime(byteArray: Array<Int>, noteArray: Array<String>) {
-
-        play(duration: nil, byteArray: byteArray, noteArray: noteArray)
+    func chime(sendTime: Date?, byteArray: Array<Int>, noteArray: Array<String>) {
+        
+        play(sendTime: sendTime, duration: nil, byteArray: byteArray, noteArray: noteArray)
 
     }
 
