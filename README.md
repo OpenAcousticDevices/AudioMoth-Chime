@@ -1,6 +1,6 @@
 # AudioMoth Chime #
 
-The AudioMoth-Chime library provide support to set the time and deployment ID of an AudioMoth using an acoustic tone.
+The AudioMoth-Chime library provide support to set the time and the 8-byte deployment ID of an AudioMoth using an acoustic tone.
 
 ### Android ###
 
