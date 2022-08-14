@@ -547,70 +547,104 @@ class AudioMothChime {
 
         let waveform: Array<Float> = createWaveform(sampleRate: SAMPLE_RATE, duration: duration, byteArray: byteArray, noteArray: noteArray)
         
-        /* Make the WAV header */
+        /* Constants for the WAV header */
         
+        let PCM_FORMAT: Int = 1
+
         let HEADER_SIZE: Int = 44
         
+        let BITS_PER_BYTE: Int = 8
+                
         let BYTES_PER_SAMPLE: Int = 2
         
+        let NUMBER_OF_CHANNELS: Int = 2
+         
+        let BYTES_IN_UINT16_VALUE: Int = 2
+
         let BYTES_IN_UINT32_VALUE: Int = 4
         
-        data = Data(count: HEADER_SIZE + BYTES_PER_SAMPLE * waveform.count)
+        let RIFF_CHUNK_HEADER_LENGTH: Int = 4
+        
+        /* Data structure and functions to write the WAV header */
+        
+        var index : Int = 0
 
-        func writeUInt32ToData(index: Int, value: UInt32) {
+        data = Data(count: HEADER_SIZE + NUMBER_OF_CHANNELS * BYTES_PER_SAMPLE * waveform.count)
+
+        func writeChunkHeader(value: String) {
+            
+            for i in 0..<RIFF_CHUNK_HEADER_LENGTH {
+                
+                data[index] = value.utf8.map{ UInt8($0) }[i]
+                
+                index += 1
+                
+            }
+            
+        }
+
+        func write16BitValueToData(value: Int) {
+            
+            data[index] = UInt8(value & 0xFF)
+            data[index + 1] = UInt8((value >> 8) & 0xFF)
+            
+            index += BYTES_IN_UINT16_VALUE
+            
+        }
+
+        func write32BitValueToData(value: Int) {
             
             data[index] = UInt8(value & 0xFF)
             data[index + 1] = UInt8((value >> 8) & 0xFF)
             data[index + 2] = UInt8((value >> 16) & 0xFF)
             data[index + 4] = UInt8((value >> 24) & 0xFF)
             
+            index += BYTES_IN_UINT32_VALUE
+            
         }
         
-        for i in 0..<4 { data[i] = String("RIFF").utf8.map{ UInt8($0) }[i] }
+        /* Actually writing the WAV header */
         
-        let riffChunkSize: UInt32 = UInt32(data.count - 4 - BYTES_IN_UINT32_VALUE)
-        
-        writeUInt32ToData(index: 4, value: riffChunkSize)
-        
-        for i in 0..<8 { data[8 + i] = String("WAVEfmt ").utf8.map{ UInt8($0) }[i] }
-        
-        data[16] = 16  // Format chunk size
-        
-        data[20] = 1   // PCM
-        
-        data[22] = 1   // Number of channels
-        
-        let sampleRate: UInt32 = UInt32(SAMPLE_RATE)
-        
-        writeUInt32ToData(index: 24, value: sampleRate)
-        
-        let bytesPerSecond: UInt32 = UInt32(data.count - 4 - BYTES_IN_UINT32_VALUE)
-        
-        writeUInt32ToData(index: 28, value: bytesPerSecond)
+        writeChunkHeader(value: "RIFF")
 
-        data[32] = 2   // Bytes per capture
+        write32BitValueToData(value: data.count - RIFF_CHUNK_HEADER_LENGTH - BYTES_IN_UINT32_VALUE)
         
-        data[34] = 16  // Bits per sample
+        writeChunkHeader(value: "WAVE")
         
-        for i in 0..<4 { data[36 + i] = String("data").utf8.map{ UInt8($0) }[i] }
+        writeChunkHeader(value: "fmt ")
         
-        let dataChunkSize: UInt32 = UInt32(BYTES_PER_SAMPLE * waveform.count)
+        write32BitValueToData(value: 4 * BYTES_IN_UINT16_VALUE + 2 * BYTES_IN_UINT32_VALUE)
+
+        write16BitValueToData(value: PCM_FORMAT)
         
-        writeUInt32ToData(index: 40, value: dataChunkSize)
+        write16BitValueToData(value: NUMBER_OF_CHANNELS)
+        
+        write32BitValueToData(value: SAMPLE_RATE)
+
+        write32BitValueToData(value: NUMBER_OF_CHANNELS * SAMPLE_RATE * BYTES_PER_SAMPLE)
+
+        write16BitValueToData(value: NUMBER_OF_CHANNELS * BYTES_PER_SAMPLE)
+        
+        write16BitValueToData(value: BITS_PER_BYTE * BYTES_PER_SAMPLE)
+        
+        writeChunkHeader(value: "data")
+
+        write32BitValueToData(value: NUMBER_OF_CHANNELS * BYTES_PER_SAMPLE * waveform.count)
+        
+        assert(index == HEADER_SIZE, "WAV header size is incorrect")
         
         /* Convert the waveform data */
-        
-        var index: Int = HEADER_SIZE
-        
+
         waveform.forEach { sample in
             
-            let value: Int16 = Int16(sample * Float(Int16.max))
+            let value: Int = Int(sample * Float(Int16.max) + 0.5)
             
-            data[index] = UInt8(value & 0xFF)
-            data[index+1] = UInt8((value >> 8) & 0xFF)
-            
-            index += 2
-        
+            for _ in 0..<NUMBER_OF_CHANNELS {
+                
+                write16BitValueToData(value: value)
+                
+            }
+
         }
         
         /* Play the waveform at the appropriate time */
