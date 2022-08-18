@@ -612,21 +612,29 @@ class AudioMothChime {
         noteArray: Array<String>
     ) {
 
-        /* Configure AudioTrack */
+        /* Generate waveform */
 
         val sampleRate: Int = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC)
 
-        val minBufferSize = AudioTrack.getMinBufferSize(
-            sampleRate,
-            AudioFormat.CHANNEL_OUT_MONO,
-            AudioFormat.ENCODING_PCM_16BIT
-        )
+        val waveform: ArrayList<Float> = createWaveform(sampleRate, duration, byteArray, noteArray)
+
+        val buffer = ShortArray(waveform.size)
+
+        waveform.forEachIndexed { index, fl ->
+            buffer[index] = (fl * Short.MAX_VALUE).toShort()
+        }
+
+        /* Configure AudioTrack */
+
+        val BYTES_IN_SHORT: Int = 2
+
+        val sizeOfAudioBuffer: Int = BYTES_IN_SHORT * buffer.size
 
         val player = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .build()
                 )
@@ -637,29 +645,20 @@ class AudioMothChime {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                         .build()
                 )
-                .setBufferSizeInBytes(minBufferSize)
+                .setBufferSizeInBytes(sizeOfAudioBuffer)
+                .setTransferMode(AudioTrack.MODE_STATIC)
                 .build()
         } else {
             AudioTrack(
                 AudioManager.STREAM_MUSIC, sampleRate,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                minBufferSize,
+                sizeOfAudioBuffer,
                 AudioTrack.MODE_STATIC
             )
         }
 
-        /* Generate waveform */
-
-        val waveform: ArrayList<Float> = createWaveform(sampleRate, duration, byteArray, noteArray)
-
-        /* Play waveform */
-
-        val buffer = ShortArray(waveform.size)
-
-        waveform.forEachIndexed { index, fl ->
-            buffer[index] = (fl * Short.MAX_VALUE).toShort()
-        }
+        player.write(buffer, 0, buffer.size)
 
         /* Play the waveform at the appropriate time */
 
@@ -686,10 +685,8 @@ class AudioMothChime {
         }
 
         println("AUDIOMOTH CHIME: Start")
-
+        
         player.play()
-
-        player.write(buffer, 0, waveform.size)
 
         println("AUDIOMOTH CHIME: Done")
 
