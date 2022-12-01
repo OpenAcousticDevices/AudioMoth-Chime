@@ -51,13 +51,13 @@ Below is an example of their use:
 ```javascript
 	var audioMothChimeConnector = new AudioMothChimeConnector();
 
-	document.getElementById("chime_button").addEventListener("click", function () {
+	document.getElementById("chime_button").addEventListener("click", () => {
 
 		document.getElementById("chime_button").disabled = true;
 
 		var date = new Date();
 
-		audioMothChimeConnector.playTime(function () {
+		audioMothChimeConnector.playTime(date, () => {
 
 			document.getElementById("chime_button").disabled = false;
 
