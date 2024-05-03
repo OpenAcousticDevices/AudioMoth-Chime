@@ -14,7 +14,10 @@ class AudioMothChimeConnector {
     private let BITS_IN_INT16: Int = 16
     private let BITS_IN_INT32: Int = 32
 
-    private let LENGTH_OF_CHIME_PACKET: Int = 6
+    private let BITS_IN_LATITUDE_AND_LONGITUDE: Int = 28
+    
+    private let LENGTH_OF_TIME: Int = 6
+    private let LENGTH_OF_LOCATION: Int = 7
     private let LENGTH_OF_DEPLOYMENT_ID: Int = 8
 
     private let MILLISECONDS_IN_SECOND = 1000
@@ -55,7 +58,7 @@ class AudioMothChimeConnector {
 
     }
 
-    private func setTimeData(data: inout Array<Int>, index: inout Int, date: Date, timezone: TimeZone) {
+    private func encodeTime(data: inout Array<Int>, index: inout Int, date: Date, timezone: TimeZone) {
 
         /* Calculate timestamp and offset */
 
@@ -70,6 +73,30 @@ class AudioMothChimeConnector {
         setBits(data: &data, index: &index, value: timezoneMinutes, length: BITS_IN_INT16)
 
     }
+    
+    private func encodeLocation(data: inout Array<Int>, index: inout Int, latitude: Double, longitude: Double) {
+            
+        let intLatitude = Int(round(max(-90.0, min(90.0, latitude)) * 1000000.0))
+        
+        let intLongitude = Int(round(max(-180.0, min(180.0, longitude)) * 500000.0))
+        
+        setBits(data: &data, index: &index, value: intLatitude, length: BITS_IN_LATITUDE_AND_LONGITUDE)
+        
+        setBits(data: &data, index: &index, value: intLongitude, length: BITS_IN_LATITUDE_AND_LONGITUDE)
+        
+    }
+    
+    private func encodeDeploymentID(data: inout Array<Int>, index: inout Int, deploymentID: Array<Int>) {
+        
+        for i in 0..<LENGTH_OF_DEPLOYMENT_ID {
+
+            data[index / BITS_PER_BYTE] = deploymentID[LENGTH_OF_DEPLOYMENT_ID - 1 - i] & 0xFF
+            
+            index += BITS_PER_BYTE
+
+        }
+        
+    }
 
     /* Public interface functions */
     
@@ -79,13 +106,17 @@ class AudioMothChimeConnector {
 
     }
 
-    func playTime(date: Date, timezone: TimeZone) {
+    func playTime(date: Date, timezone: TimeZone, latitude: Double?, longitude: Double?) {
 
         /* Set up array */
 
         var index: Int = 0
+        
+        let locationValid = latitude != nil && longitude != nil
+        
+        let length: Int = LENGTH_OF_TIME + (locationValid ? LENGTH_OF_LOCATION : 0)
 
-        var data = Array<Int>(repeating: 0, count: LENGTH_OF_CHIME_PACKET)
+        var data = Array<Int>(repeating: 0, count: length)
 
         /* Set the time date */
         
@@ -95,21 +126,27 @@ class AudioMothChimeConnector {
         
         let sendTime = date.addingTimeInterval(delay)
         
-        setTimeData(data: &data, index: &index, date: sendTime, timezone: timezone)
+        encodeTime(data: &data, index: &index, date: sendTime, timezone: timezone)
+        
+        if locationValid { encodeLocation(data: &data, index: &index, latitude: latitude!, longitude: longitude!) }
 
         /* Play the data */
+        
+        var tune = ["C5:1", "D5:1", "E5:1", "C5:3"]
+        
+        if locationValid { tune += ["D5:1", "E5:1", "C5:3"] }
 
-        audioMothChime.chime(sendTime: sendTime, byteArray: data, noteArray: ["C5:1", "D5:1", "E5:1", "C5:3"])
+        audioMothChime.chime(sendTime: sendTime, byteArray: data, noteArray: tune)
 
     }
 
-    func playTimeAndDeploymentID(date: Date, timezone: TimeZone, deploymentID: Array<Int>) {
+    func playTimeAndDeploymentID(date: Date, timezone: TimeZone, latitude: Double?, longitude: Double?, deploymentID: Array<Int>) {
 
         /* Check deployment ID length */
 
         if deploymentID.count != LENGTH_OF_DEPLOYMENT_ID {
             
-            print("AUDIOMOTHCHIME_CONNECTOR: Deployment ID is incorrect length")
+            print("AUDIO MOTHCHIME CONNECTOR: Deployment ID is incorrect length")
 
             return
             
@@ -118,8 +155,12 @@ class AudioMothChimeConnector {
         /* Set up array */
 
         var index: Int = 0
+        
+        let locationValid = latitude != nil && longitude != nil
+        
+        let length: Int = LENGTH_OF_TIME + (locationValid ? LENGTH_OF_LOCATION : 0) + LENGTH_OF_DEPLOYMENT_ID
 
-        var data: Array<Int> = Array<Int>(repeating: 0, count: LENGTH_OF_CHIME_PACKET + LENGTH_OF_DEPLOYMENT_ID)
+        var data: Array<Int> = Array<Int>(repeating: 0, count: length)
 
         /* Set the time date */
         
@@ -129,21 +170,19 @@ class AudioMothChimeConnector {
         
         let sendTime = date.addingTimeInterval(delay)
 
-        setTimeData(data: &data, index: &index, date: sendTime, timezone: timezone)
+        encodeTime(data: &data, index: &index, date: sendTime, timezone: timezone)
+        
+        if locationValid { encodeLocation(data: &data, index: &index, latitude: latitude!, longitude: longitude!) }
 
-        /* Set the deployment ID */
-
-        let length = LENGTH_OF_CHIME_PACKET + LENGTH_OF_DEPLOYMENT_ID
-
-        for i in 0..<LENGTH_OF_DEPLOYMENT_ID {
-
-            data[length - 1 - i] = deploymentID[i] & 0xFF
-
-        }
+        encodeDeploymentID(data: &data, index: &index, deploymentID: deploymentID)
 
         /* Play the data */
+        
+        var tune = ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"]
+        
+        if locationValid { tune += ["Db5:1", "F5:1", "C5:1", "E5:4"] }
 
-        audioMothChime.chime(sendTime: sendTime, byteArray: data, noteArray: ["Eb5:1", "G5:1", "D5:1", "F#5:1", "Db5:1", "F5:1", "C5:1", "E5:5"])
+        audioMothChime.chime(sendTime: sendTime, byteArray: data, noteArray: tune)
 
     }
 

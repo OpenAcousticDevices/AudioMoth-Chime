@@ -1,6 +1,6 @@
 # AudioMoth Chime #
 
-The AudioMoth-Chime library provide support to set the time and the 8-byte deployment ID of an AudioMoth using an acoustic tone. These will automatically work with version 1.5.0 of the AudioMoth-Firmware-Basic and later.
+The AudioMoth-Chime library provide support to set the time and deployment ID of an AudioMoth using an acoustic tone. In both calls, it is also possible to set a location encoded as a floating point latitude and longitude.
 
 ### Android ###
 
@@ -9,9 +9,9 @@ The Kotlin Android library contains two classes that must be included in the app
 ```kotlin
 	fun playTone(duration: Int)
 
-	fun playTime(calendar: Calendar)
+	fun playTime(calendar: Calendar, latitude: Double, longitude: Double)
 	
-	fun playTimeAndDeploymentID(calendar: Calendar, deploymentID: Array<Int>)
+	fun playTimeAndDeploymentID(calendar: Calendar, latitude: Double?, longitude: Double?, deploymentID: Array<Int>)
 ```
 
 Below is an example of their use:
@@ -27,7 +27,7 @@ Below is an example of their use:
 
 		Thread {
 
-			audioMothConnector.playTime(calendar)
+			audioMothConnector.playTime(calendar, null, null)
 
 		}.start()
 
@@ -41,9 +41,9 @@ The Javascript library contains two classes that must be included in the webpage
 ```javascript
 	playTone(duration, callback);
 
-	playTime(date, callback);
+	playTime(date, latitude, longitude, callback);
 	
-	playTimeAndDeploymentID(date, deploymentID, callback);
+	playTimeAndDeploymentID(date, deploymentID, latitude, longitude, callback);
 ```
 
 Below is an example of their use:
@@ -51,13 +51,13 @@ Below is an example of their use:
 ```javascript
 	var audioMothChimeConnector = new AudioMothChimeConnector();
 
-	document.getElementById("chime_button").addEventListener("click", () => {
+	document.getElementById("chime_button").addEventListener("click", function () {
 
 		document.getElementById("chime_button").disabled = true;
 
 		var date = new Date();
 
-		audioMothChimeConnector.playTime(date, () => {
+		audioMothChimeConnector.playTime(date, null, null, function () {
 
 			document.getElementById("chime_button").disabled = false;
 
@@ -73,9 +73,9 @@ The Swift iOS library contains two classes that must be included in the app. The
 ```swift
 	func playTone(duration: Int)
 
-	func playTime(date: Date, timezone: TimeZone)
+	func playTime(date: Date, timezone: TimeZone, latitude: Double?, longitude: Double?)
 	
-	func playTimeAndDeploymentID(date: Date, timezone: TimeZone, deploymentID: Array<Int>)
+	func playTimeAndDeploymentID(date: Date, timezone: TimeZone, latitude: Double?, longitude: Double?, deploymentID: Array<Int>)
 ```
 
 Below is an example of their use:
@@ -87,19 +87,10 @@ Below is an example of their use:
 		
 		let timezone: TimeZone = TimeZone.current
 		
-		audioMothChimeConnector.playTime(date: date, timezone: timezone)
+		audioMothChimeConnector.playTime(date: date, timezone: timezone, latitude: nil, longitude: nil)
 
 	}) {
 		Text("Play Chime")
 	}
 ```
-
-### Related Repositories ###
-* [AudioMoth Firmware Basic](https://github.com/OpenAcousticDevices/AudioMoth-Firmware-Basic)
-* [AudioMoth Time App](https://github.com/OpenAcousticDevices/AudioMoth-Time-App)
-
-### License ###
-
-Copyright 2019 [Open Acoustic Devices](http://www.openacousticdevices.info/).
-
-[MIT license](http://www.openacousticdevices.info/license).
+		

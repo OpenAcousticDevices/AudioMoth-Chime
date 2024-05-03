@@ -621,7 +621,7 @@ class AudioMothChime {
         val buffer = ShortArray(waveform.size)
 
         waveform.forEachIndexed { index, fl ->
-            buffer[index] = (fl * Short.MAX_VALUE).toShort()
+            buffer[index] = (fl * Short.MAX_VALUE).toInt().toShort()
         }
 
         /* Configure AudioTrack */
