@@ -15,6 +15,9 @@ class AudioMothChimeConnector {
     private let BITS_IN_INT32: Int = 32
 
     private let BITS_IN_LATITUDE_AND_LONGITUDE: Int = 28
+
+    private let LATITUDE_PRECISION: Double = 1000000.0
+    private let LONGITUDE_PRECISION: Double = 500000.0
     
     private let LENGTH_OF_TIME: Int = 6
     private let LENGTH_OF_LOCATION: Int = 7
@@ -76,9 +79,9 @@ class AudioMothChimeConnector {
     
     private func encodeLocation(data: inout Array<Int>, index: inout Int, latitude: Double, longitude: Double) {
             
-        let intLatitude = Int(round(max(-90.0, min(90.0, latitude)) * 1000000.0))
+        let intLatitude = Int(round(max(-90.0, min(90.0, latitude)) * LATITUDE_PRECISION))
         
-        let intLongitude = Int(round(max(-180.0, min(180.0, longitude)) * 500000.0))
+        let intLongitude = Int(round(max(-180.0, min(180.0, longitude)) * LONGITUDE_PRECISION))
         
         setBits(data: &data, index: &index, value: intLatitude, length: BITS_IN_LATITUDE_AND_LONGITUDE)
         
