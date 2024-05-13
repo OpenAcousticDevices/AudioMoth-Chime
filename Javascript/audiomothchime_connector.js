@@ -20,8 +20,6 @@ var AudioMothChimeConnector = function () {
     const LATITUDE_PRECISION = 1000000;
     
     const LONGITUDE_PRECISION = 500000;
-    
-    Update LATITUDE_PRECISION and LONGITUDE_PRECISION
 
     /* Function to encode little-endian value */
 
