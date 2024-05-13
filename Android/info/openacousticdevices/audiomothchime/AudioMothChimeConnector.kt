@@ -18,7 +18,10 @@
      private val BITS_IN_INT32: Int = 32
  
      private val BITS_IN_LATITUDE_AND_LONGITUDE: Int = 28
- 
+
+     private var LATITUDE_PRECISION: Double = 1000000.0
+     private var LONGITUDE_PRECISION: Double = 500000.0
+  
      private val LENGTH_OF_TIME: Int = 6
      private val LENGTH_OF_LOCATION: Int = 7
      private val LENGTH_OF_DEPLOYMENT_ID: Int = 8
@@ -85,9 +88,9 @@
  
      private fun encodeLocation(latitude: Double, longitude: Double, state: State) {
  
-         val intLatitude: Int = (round(max(-90.0, min(90.0, latitude)) * 1000000.0)).toInt()
+         val intLatitude: Int = (round(max(-90.0, min(90.0, latitude)) * LATITUDE_PRECISION)).toInt()
  
-         val intLongitude: Int = (round(max(-180.0, min(180.0, longitude)) * 500000.0)).toInt()
+         val intLongitude: Int = (round(max(-180.0, min(180.0, longitude)) * LONGITUDE_PRECISION)).toInt()
  
          setBits(state, intLatitude, BITS_IN_LATITUDE_AND_LONGITUDE)
  
