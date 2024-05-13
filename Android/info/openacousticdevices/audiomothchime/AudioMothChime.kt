@@ -630,12 +630,11 @@ class AudioMothChime {
 
         val sizeOfAudioBuffer: Int = BYTES_IN_SHORT * buffer.size
 
-        val player = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            AudioTrack.Builder()
+        val player = AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
                 .setAudioFormat(
@@ -648,15 +647,6 @@ class AudioMothChime {
                 .setBufferSizeInBytes(sizeOfAudioBuffer)
                 .setTransferMode(AudioTrack.MODE_STATIC)
                 .build()
-        } else {
-            AudioTrack(
-                AudioManager.STREAM_MUSIC, sampleRate,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                sizeOfAudioBuffer,
-                AudioTrack.MODE_STATIC
-            )
-        }
 
         player.write(buffer, 0, buffer.size)
 
