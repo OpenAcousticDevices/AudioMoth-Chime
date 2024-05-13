@@ -17,6 +17,12 @@ var AudioMothChimeConnector = function () {
 
     const MILLISECONDS_IN_SECOND = 1000;
 
+    const LATITUDE_PRECISION = 1000000;
+    
+    const LONGITUDE_PRECISION = 500000;
+    
+    Update LATITUDE_PRECISION and LONGITUDE_PRECISION
+
     /* Function to encode little-endian value */
 
     function littleEndianBytes(byteCount, value) {
@@ -53,8 +59,8 @@ var AudioMothChimeConnector = function () {
 
         const buffer = [];
     
-        latitude = Math.round(Math.max(-90, Math.min(90, latitude)) * 1000000);
-        longitude = Math.round(Math.max(-180, Math.min(180, longitude)) * 500000);
+        latitude = Math.round(Math.max(-90, Math.min(90, latitude)) * LATITUDE_PRECISION);
+        longitude = Math.round(Math.max(-180, Math.min(180, longitude)) * LONGITUDE_PRECISION);
 
         buffer.push(latitude & 0xFF);
         buffer.push((latitude >> 8) & 0xFF);
