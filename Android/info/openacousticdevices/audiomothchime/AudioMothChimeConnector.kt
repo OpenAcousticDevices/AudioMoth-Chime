@@ -19,8 +19,8 @@
  
      private val BITS_IN_LATITUDE_AND_LONGITUDE: Int = 28
 
-     private var LATITUDE_PRECISION: Double = 1000000.0
-     private var LONGITUDE_PRECISION: Double = 500000.0
+     private val LATITUDE_PRECISION: Double = 1000000.0
+     private val LONGITUDE_PRECISION: Double = 500000.0
   
      private val LENGTH_OF_TIME: Int = 6
      private val LENGTH_OF_LOCATION: Int = 7
