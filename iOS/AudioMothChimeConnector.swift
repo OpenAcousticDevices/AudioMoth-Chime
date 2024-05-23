@@ -15,7 +15,7 @@ class AudioMothChimeConnector {
     private let BITS_IN_INT32: Int = 32
 
     private let BITS_IN_LATITUDE_AND_LONGITUDE: Int = 28
-
+    
     private let LATITUDE_PRECISION: Double = 1000000.0
     private let LONGITUDE_PRECISION: Double = 500000.0
     
@@ -149,7 +149,7 @@ class AudioMothChimeConnector {
 
         if deploymentID.count != LENGTH_OF_DEPLOYMENT_ID {
             
-            print("AUDIO MOTHCHIME CONNECTOR: Deployment ID is incorrect length")
+            print("AUDIOMOTH CHIME CONNECTOR: Deployment ID is incorrect length")
 
             return
             
