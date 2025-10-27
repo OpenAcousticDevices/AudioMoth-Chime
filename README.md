@@ -41,12 +41,12 @@ The Javascript library contains two classes that must be included in the webpage
 ```javascript
 	playTone(duration, callback);
 
-	playTime(date, latitude, longitude, callback);
+	playTime(date, timezoneMinutes, latitude, longitude, callback);
 	
-	playTimeAndDeploymentID(date, deploymentID, latitude, longitude, callback);
+	playTimeAndDeploymentID(date, timezoneMinutes, deploymentID, latitude, longitude, callback);
 ```
 
-Below is an example of their use:
+Here ```timezoneMinutes``` encodes the offset from UTC in minutes (such that UTC+1 is 60). If this value is null or undefined, then the local time zone offset is used. Below is an example of the use of these functions:
 
 ```javascript
 	var audioMothChimeConnector = new AudioMothChimeConnector();
@@ -57,7 +57,7 @@ Below is an example of their use:
 
 		var date = new Date();
 
-		audioMothChimeConnector.playTime(date, null, null, function () {
+		audioMothChimeConnector.playTime(date, 0, null, null, function () {
 
 			document.getElementById("chime_button").disabled = false;
 
